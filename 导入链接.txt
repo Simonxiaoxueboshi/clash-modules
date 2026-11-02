@@ -15,7 +15,7 @@ https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/main/Tool/Loon
 https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/main/Tool/Loon/Lpx/Prevent_DNS_Leaks.lpx
 https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/main/Tool/Loon/Lpx/QuickSearch.lpx
 https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/main/Tool/Loon/Lpx/RedPaper_remove_ads.lpx
-https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/main/Tool/Loon/Lpx/Remove_ads_by_keli.lpx
+https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/main/Tool/Loon/Lpx/Remove_ads.lpx
 https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/main/Tool/Loon/Lpx/Script-Hub.lpx
 https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/main/Tool/Loon/Lpx/Sub-Store.lpx
 https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/main/Tool/Loon/Lpx/Taobao_remove_ads.lpx

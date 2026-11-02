@@ -1,13 +1,13 @@
-#!name=可莉广告过滤器
-#!desc=可莉自用的广告过滤器
+#!name=广告过滤器
+#!desc=自用的广告过滤器
 #!openUrl=
-#!author=可莉🅥[https://github.com/luestr/ProxyResource/blob/main/README.md]
+#!author=Simonxiaoxueboshi[https://github.com/Simonxiaoxueboshi]
 #!tag=去广告
 #!system=
 #!system_version=
 #!loon_version=3.5.1(998)
-#!homepage=https://hub.kelee.one
-#!icon=https://raw.githubusercontent.com/luestr/IconResource/main/Other_icon/120px/KeLee.png
+#!homepage=https://github.com/Simonxiaoxueboshi/clash-modules
+#!icon=https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/main/Icon/Advertising.png
 #!date=2026-10-02 13:57:49
 
 [Rule]

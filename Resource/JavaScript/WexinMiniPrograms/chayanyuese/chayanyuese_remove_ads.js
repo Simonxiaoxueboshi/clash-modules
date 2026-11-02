@@ -4,6 +4,6 @@ delete obj.data.INDEX_SLOT_02;
 obj.data?.INDEX_TOP_BANNER?.contents?.forEach(item => {
   delete item.bubble; 
   delete item.figure; 
-  item.value = "https://kelee.one/Resource/Script/WexinMiniPrograms/chayanyuese/cyys1.jpg";
+  item.value = "https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/main/Resource/Script/WexinMiniPrograms/chayanyuese/cyys1.jpg";
 });
 $done({body: JSON.stringify(obj)});

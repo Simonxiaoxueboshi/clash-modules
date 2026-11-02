@@ -1,13 +1,13 @@
 #!name=快捷搜索
 #!desc=为Safari提供快速切换搜索引擎的能力，在插件列表中点击此插件上的链接查看使用方法。
-#!openUrl=https://github.com/luestr/ProxyResource/blob/main/Resource/Markdown/QuickSearch/README.md
-#!author=可莉🅥[https://github.com/luestr/ProxyResource/blob/main/README.md]
+#!openUrl=https://github.com/Simonxiaoxueboshi/clash-modules/blob/main/Docs/QuickSearch/README.md
+#!author=Simonxiaoxueboshi[https://github.com/Simonxiaoxueboshi]
 #!tag=去广告
 #!system=
 #!system_version=
 #!loon_version=3.5.1(998)
-#!homepage=https://hub.kelee.one
-#!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/Safari.png
+#!homepage=https://github.com/Simonxiaoxueboshi/clash-modules
+#!icon=https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/main/Icon/App_icon/120px/Safari.png
 #!date=2026-10-16 11:03:37
 
 [Rewrite]
