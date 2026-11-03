@@ -1,4 +1,0 @@
-name: 阻止 QUIC (UDP 443) 全局
-desc: 备用：若域名规则因 UDP 流量只有 IP、没有域名而没命中，用此模块拒绝全部 UDP 443，强制所有 App 回退 TCP。可能影响部分游戏/HTTP3 App。
-rules:
-  - AND,((NETWORK,UDP),(DST-PORT,443)),REJECT
