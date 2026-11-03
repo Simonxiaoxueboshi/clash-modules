@@ -16,7 +16,7 @@ Simonxiaoxueboshi 自己维护的 Loon 插件，给 Hako Clash（Mac / iPhone）
 
 最简单：在 Mac 或 iPhone 上打开 https://simonxiaoxueboshi.github.io/clash-modules/ ，点插件名会拉起 Clash 并填好链接，再点「添加」。
 
-原理是 `clash://install-module?url=<URL 编码后的模块链接>`，也可以自己拼。
+原理是 `hako://install-module?url=<URL 编码后的模块链接>`，也可以自己拼。
 
 手动方式：
 

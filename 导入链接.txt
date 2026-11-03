@@ -25,7 +25,6 @@ https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/main/Tool/Loon
 https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/main/Tool/Loon/Lpx/Weixin_external_links_unlock.lpx
 https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/main/Tool/Loon/Lpx/WexinMiniPrograms_Remove_ads.lpx
 https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/main/Tool/Loon/Lpx/XiaoHeiHe_remove_ads.lpx
-https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/main/Tool/Loon/Lpx/YouTubeSubtitlesTranslation.lpx
 https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/main/Tool/Loon/Lpx/YouTube_remove_ads.lpx
 https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/main/Tool/Loon/Lpx/smzdm_remove_ads.lpx
 
