@@ -1,0 +1,51 @@
+name: YouTube去广告 (Clash iOS)
+desc: 移除YouTube视频、瀑布流、搜索和Shorts广告，支持后台播放/画中画；YouTube Music 同理。需开启 HTTPS 解密并信任证书；已含 QUIC(UDP 443) 阻断规则。由 Loon 插件改写（原作者 Maasea 等）。
+openUrl: https://apps.apple.com/app/id544007664
+author: Maasea, VirgilClyne, Choler, DivineEngine, app2smile; adapted for Clash iOS
+homepage: https://github.com/Simonxiaoxueboshi/clash-modules
+category: ad
+
+http:
+  mitm:
+    - "*.googlevideo.com"
+    - youtubei.googleapis.com
+  script:
+    - match: ^https:\/\/youtubei\.googleapis\.com\/(youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch|log_event|config))(\?(.*))?$
+      name: YT-response
+      type: response
+      require-body: true
+      binary-mode: true
+      max-size: -1
+      timeout: 30
+      argument: '{"blockUpload":false,"blockShorts":false,"blockImmersive":false,"captionLang":"zh-Hans","debug":false}'
+    - match: ^https?:\/\/[\w-]+\.googlevideo\.com\/initplayback.+&ack.*
+      name: YT-request
+      type: request
+      require-body: true
+      binary-mode: true
+      max-size: -1
+      timeout: 30
+      argument: '{"captionLang":"zh-Hans"}'
+    - match: ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/log_event
+      name: YT-request
+      type: request
+      require-body: true
+      binary-mode: true
+      max-size: -1
+      timeout: 30
+      argument: '{"blockUpload":false,"blockShorts":false,"blockImmersive":false,"captionLang":"zh-Hans","debug":false}'
+
+# QUIC 回退保护：YouTube 走 UDP 443(QUIC/HTTP3) 会绕过 MitM，拒绝后 App 自动回退到 TCP/TLS
+rules:
+  - AND,((NETWORK,UDP),(DST-PORT,443),(DOMAIN-SUFFIX,googlevideo.com)),REJECT
+  - AND,((NETWORK,UDP),(DST-PORT,443),(DOMAIN-SUFFIX,youtubei.googleapis.com)),REJECT
+  - AND,((NETWORK,UDP),(DST-PORT,443),(DOMAIN-SUFFIX,youtube.com)),REJECT
+  - AND,((NETWORK,UDP),(DST-PORT,443),(DOMAIN-SUFFIX,youtu.be)),REJECT
+
+script-providers:
+  YT-response:
+    url: https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/main/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_response.js
+    interval: 86400
+  YT-request:
+    url: https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/main/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_request.js
+    interval: 86400
