@@ -4,7 +4,7 @@ Simonxiaoxueboshi 自己维护的 Loon 插件，给 Hako Clash（Mac / iPhone）
 
 ## 结构
 
-- `Tool/Loon/Lpx/*.lpx`：插件。
+- `Tool/Clash/*.lpx`：插件。
 - `Resource/JavaScript/`、`Resource/Script/`：脚本和脚本用到的文件。
 - `Resource/JQLang/`：jq 文件。
 - `Icon/`：插件图标。
@@ -23,7 +23,7 @@ Simonxiaoxueboshi 自己维护的 Loon 插件，给 Hako Clash（Mac / iPhone）
 在 Clash → 模块 → 添加模块 → 链接，填：
 
 ```
-https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/main/Tool/Loon/Lpx/<插件名>.lpx
+https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/main/Tool/Clash/<插件名>.lpx
 ```
 
 完整列表见 `导入链接.txt`。
