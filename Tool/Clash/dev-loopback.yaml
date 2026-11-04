@@ -1,0 +1,15 @@
+# dev-loopback（Clash / mihomo 版）
+# 用途：等价 Loon dev-loopback 模块里的 [IP Rewrite] 10.7.0.1 = reflect，
+#       让发往 10.7.0.1 的连接弹回本机（wloc 等开发工具需要 10.7.0.1 作为回环地址）。
+# 用法：这不是 .lpx 模块，不能直接导入。把下面几行合并进 Clash App 当前配置的 tun: 段
+#       （已有 tun: 段就并进去，不要重复写 tun:），保存后断开再重连 Clash。
+#       若 App 报 loopback-address 格式错误，改成 10.7.0.1/32。
+# 来源：https://clash.md/zh/guide/config/inbound （TUN 的 route-address / loopback-address）
+# 原 Loon 模块：https://raw.githubusercontent.com/ios151/Rewrite/refs/heads/main/dev-loopback/modules/dev-loopback.lpx
+tun:
+  enable: true
+  route-address:          # 等价 Loon include-tun：让 10.7.0.1 进入隧道
+    - 10.7.0.1/32
+  loopback-address:       # 等价 Loon [IP Rewrite] 10.7.0.1 = reflect：交换源/目的地址弹回发送方
+    - 10.7.0.1
+ipv6: false               # 对应 ipv6-vif = off（可选）
