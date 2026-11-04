@@ -1,8 +1,0 @@
-#!name=本机回环 dev-loopback
-#!desc=把 10.7.0.1 回环到本机，供 wloc 等工具使用
-[General]
-ipv6-vif = off
-include-tun = 10.7.0.1/32
-
-[IP Rewrite]
-10.7.0.1 = reflect
