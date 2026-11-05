@@ -226,7 +226,12 @@ function xtime(value){return ((value<<1)^((value&128)?27:0))&255;}addKey(0);for(
     outcome = "rewritten";
     return join(root.map((record) => record === outer ? frame(3, newEnvelope) : bytes.subarray(record.start, record.dataEnd)));
   }
-  const settings = (() => { try { return JSON.parse(typeof $argument === "string" ? $argument : "{}") || {}; } catch (error) { return {}; } })();
+  const settings = (() => {
+    try {
+      const raw = typeof $argument === "string" ? JSON.parse($argument) : $argument;
+      return raw && typeof raw === "object" ? raw : {};
+    } catch (error) { return {}; }
+  })();
   const verbose = settings.debug === true || String(settings.debug).toLowerCase() === "true";
   const OUTCOME = {
     rewritten: "已改写加密信封",
