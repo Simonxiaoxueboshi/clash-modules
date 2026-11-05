@@ -32,13 +32,13 @@ request if ${url} ~= /^https:\/\/youtubei(?:-att)?\.googleapis\.com\/youtubei\/v
 request if ${url} ~= /^https:\/\/[a-z0-9-]+\.googlevideo\.com\/initplayback(?:\?[^#]*)?$/i then script("https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/8c713a0/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_playback_request.js", {${debug}}) with tag="YouTube片头广告", requires_body=true, binary_body_mode=true
 
 # TEMP 探针：上报 initplayback 的请求/响应体与广告媒体地址，验证完成后删除。
-request if ${url} ~= /^https:\/\/[a-z0-9-]+\.googlevideo\.com\/initplayback(?:\?[^#]*)?$/i then script("https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/a329b15/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_init_probe.js") with tag="片头请求探针", requires_body=true, binary_body_mode=true
+request if ${url} ~= /^https:\/\/[a-z0-9-]+\.googlevideo\.com\/initplayback(?:\?[^#]*)?$/i then script("https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/f541426/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_init_probe.js") with tag="片头请求探针", requires_body=true, binary_body_mode=true
 
-response if ${url} ~= /^https:\/\/[a-z0-9-]+\.googlevideo\.com\/initplayback(?:\?[^#]*)?$/i then script("https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/a329b15/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_init_probe.js") with tag="片头响应探针", requires_body=true, binary_body_mode=true
+response if ${url} ~= /^https:\/\/[a-z0-9-]+\.googlevideo\.com\/initplayback(?:\?[^#]*)?$/i then script("https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/f541426/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_init_probe.js") with tag="片头响应探针", requires_body=true, binary_body_mode=true
 
-request if ${url} ~= /^https:\/\/[a-z0-9-]+\.googlevideo\.com\/videoplayback\?/i then script("https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/a329b15/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_init_probe.js") with tag="广告媒体探针"
+request if ${url} ~= /^https:\/\/[a-z0-9-]+\.googlevideo\.com\/videoplayback\?/i then script("https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/f541426/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_init_probe.js") with tag="广告媒体探针"
 
-response if ${url} ~= /^https:\/\/youtubei(?:-att)?\.googleapis\.com\/youtubei\/v1\/(?:next|get_watch)(?:\?[^#]*)?$/i then script("https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/a329b15/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_init_probe.js") with tag="接口响应探针", requires_body=true, binary_body_mode=true
+response if ${url} ~= /^https:\/\/youtubei(?:-att)?\.googleapis\.com\/youtubei\/v1\/(?:next|get_watch)(?:\?[^#]*)?$/i then script("https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/f541426/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_init_probe.js") with tag="接口响应探针", requires_body=true, binary_body_mode=true
 
 response if ${url} ~= /^https:\/\/youtubei(?:-att)?\.googleapis\.com\/(youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch|log_event|config))(\?(.*))?$/i then script("https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/c092087/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_response.js", {${blockUpload}, ${blockShorts}, ${blockImmersive}, ${captionLang}, ${debug}}) with tag="YouTube去广告", requires_body=true, binary_body_mode=true
 
