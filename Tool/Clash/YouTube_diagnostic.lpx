@@ -30,7 +30,7 @@ request if ${url} ~= /^https:\/\/[a-z0-9-]+\.googlevideo\.com\/initplayback(?:\?
 request if ${url} ~= /^https:\/\/[a-z0-9-]+\.googlevideo\.com\/initplayback\?(?:[^#]*&)?oad=[1-9]\d*(?:&[^#]*)?$/i && ${request.method} == "GET" && ${request.header['User-Agent']} ~= /(?:^|\s)com\.google\.ios\.youtube\//i then reject_video(200)
 
 [Script]
-response if ${url} ~= /^https:\/\/youtubei(?:-att)?\.googleapis\.com\/(youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch|log_event|config))(\?(.*))?$/i then script("https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/main/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_feed_capture.js", {${blockUpload}, ${blockShorts}, ${blockImmersive}, ${captionLang}, ${debug}}) with tag="YouTube去广告", requires_body=true, binary_body_mode=true
+response if ${url} ~= /^https:\/\/youtubei(?:-att)?\.googleapis\.com\/(youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch|log_event|config))(\?(.*))?$/i then script("https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/8943182/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_feed_capture.js", {${blockUpload}, ${blockShorts}, ${blockImmersive}, ${captionLang}, ${debug}}) with tag="YouTube去广告", requires_body=true, binary_body_mode=true
 
 request if ${url} ~= /^https:\/\/youtubei(?:-att)?\.googleapis\.com\/youtubei\/v1\/player\/ad_break(?:\?[^#]*)?$/i then script("https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/main/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_ad_break_block.js") with tag="广告配置拦截"
 
