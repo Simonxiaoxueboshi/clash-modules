@@ -38,6 +38,15 @@ https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/main/Tool/Clas
 ## 维护
 
 某个 App 又出现广告时，记下 App、界面，最好附抓包或截图，再改对应插件里的正则 / jq / 脚本。
-YouTube（去广告、字幕翻译）、哔哩哔哩、网易云的脚本是编译后的打包文件，不能直接手改，接口变化时需要从开源源码重新编译。
+YouTube（去广告、字幕翻译）、哔哩哔哩、网易云的脚本是编译后的打包文件。优先从开源源码重新编译；本仓库对 YouTube 响应包的局部修改使用 AST 替换，并用 `node --test tests/youtube-ads.test.cjs` 验证过滤行为和 protobuf 字段保留。
 
 raw.githubusercontent.com 有约 5 分钟缓存，推送后稍等再在 Clash 里更新模块。
+
+### 2026-11-05：Loon iPhone 广告修复
+
+- Loon 的「脚本」总开关必须开启；仅启用插件、重写和 HTTPS 解密不足以运行脚本。手机排查时发现该开关关闭，已开启。
+- 高德：覆盖 `m5.amap.com` 的 `valueadded` / `aos` 开屏接口，以及 `amap-aos-info-nogw.amap.com` 的 `splash_screen_rt` 接口。一次冷启动未出现开屏广告，地点搜索和路线规划正常；未开始实际导航。
+- YouTube：首页延迟列表新增 protobuf 路径 `SectionListRenderer.32 → 1 → 6 → SectionListRenderer`；过滤器逐条检查内容，不再按字段编号永久缓存白名单，并检查每个未知字段。
+- 手机抓到的两份含广告首页响应，经修复后分别保留 22 条普通卡片、删除 1 条广告，以及删除单独 1 条广告；两份不含广告的响应保持字节不变。抓包含个人内容，只保存在本地，不进入仓库。
+- 回归覆盖共享类型的普通卡片与广告、非首个未知字段、紧凑广告命令、相邻普通卡片，以及延迟列表的完整响应处理与未知字段保留。
+
