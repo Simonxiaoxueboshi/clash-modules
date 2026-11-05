@@ -8,10 +8,12 @@
 #!loon_version=3.4.0(962)
 #!homepage=https://github.com/Simonxiaoxueboshi/clash-modules
 #!icon=https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/main/Icon/App_icon/120px/Amap.png
-#!date=2026-10-20 12:06:08
+#!date=2026-11-05
 
 [Rewrite]
-request if ${url} ~= /^https:\/\/m5\.amap\.com\/ws\/valueadded\/alimama\/splash_screen\?/i then reject_dict(200)
+request if ${url} ~= /^https:\/\/m5\.amap\.com\/ws\/(?:valueadded|aos)\/alimama\/splash_screen(?:\?|$)/i then reject_dict(200)
+# 高德 17 使用独立 AOS 主机请求实时开屏配置。
+request if ${url} ~= /^https:\/\/amap-aos-info-nogw\.amap\.com\/ws\/aos\/alimama\/splash_screen_rt(?:\?|$)/i then reject_dict(200)
 
 response if ${url} ~= /^https:\/\/m5\.amap\.com\/ws\/shield\/frogserver\/aocs\/updatable\/1\?/i then response.json.delete(["data.adStatementConfig", "data.adCustomerRetainArchitecture", "data.adImEntryConfig", "data.adVenueConfig", "data.adPerfSwitch", "data.EndNaviC3AdCard", "data.infoCpcReport", "data.hotsaleConfig", "data.marketing_resource_config", "data.coupon_risk_asac", "data.commonCouponSceneLog", "data.sug_coupon_opt", "data.giftEntryConfig", "data.splashscreen", "data.SplashScreenControl", "data.splashview_config", "data.feedback_banner", "data.TrainOrderBanner", "data.nearby_business_popup", "data.shortcut_popup_frequency", "data.tel_retention_popup", "data.hotel_activity", "data.taxi_activity", "data.hotel_privilege", "data.sportsActivityConfig", "data.activity_qingke_contry_control", "data.920bestwishes", "data.custom_consultdata.widget_guide", "data.free_ride", "data.homepage_resource_config", "data.home_message_guide", "data.hotel_tipsicon", "data.sur_bar", "data.nearby_map_entry_guide", "data.comment_info", "data.small_biz_index", "data.small_biz_fun", "data.setpagesearch", "data.wallet"])
 
@@ -56,4 +58,4 @@ response if ${url} ~= /^https:\/\/m5\.amap\.com\/ws\/smartui\/near_recommend\?/i
 request if ${url} ~= /^https:\/\/m5\.amap\.com\/ws\/shield\/search_business\/process\/marketingOperationStructured\?/i then reject_dict(200)
 
 [MitM]
-hostname=m5.amap.com, ai.amap.com, m5-zb.amap.com, center.amap.com, sns.amap.com, info.amap.com
+hostname=m5.amap.com, amap-aos-info-nogw.amap.com, ai.amap.com, m5-zb.amap.com, center.amap.com, sns.amap.com, info.amap.com
