@@ -25,9 +25,8 @@ AND,((PROTOCOL,UDP),(DEST-PORT,443),(DOMAIN-SUFFIX,youtube.com)),REJECT
 AND,((PROTOCOL,UDP),(DEST-PORT,443),(DOMAIN-SUFFIX,youtu.be)),REJECT
 
 [Rewrite]
-# 初始化 POST 使用空视频；GET 仅拦截实际抓到的正数 oad 广告时长，保留普通播放初始化。
-request if ${url} ~= /^https:\/\/[a-z0-9-]+\.googlevideo\.com\/initplayback(?:\?[^#]*)?$/i && ${request.method} == "POST" && ${request.header['User-Agent']} ~= /(?:^|\s)com\.google\.ios\.youtube\//i then reject_video(200)
-request if ${url} ~= /^https:\/\/[a-z0-9-]+\.googlevideo\.com\/initplayback\?(?:[^#]*&)?oad=[1-9]\d*(?:&[^#]*)?$/i && ${request.method} == "GET" && ${request.header['User-Agent']} ~= /(?:^|\s)com\.google\.ios\.youtube\//i then reject_video(200)
+# initplayback 使用 UMP 合并广告与视频；空响应让客户端回退到可过滤的 youtubei/v1/player。
+request if ${url} ~= /^https:\/\/[a-z0-9-]+\.googlevideo\.com\/initplayback(?:\?[^#]*)?$/i then reject(200)
 
 [Script]
 response if ${url} ~= /^https:\/\/youtubei(?:-att)?\.googleapis\.com\/(youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch|log_event|config))(\?(.*))?$/i then script("https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/main/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_response.js", {${blockUpload}, ${blockShorts}, ${blockImmersive}, ${captionLang}, ${debug}}) with tag="YouTube去广告", requires_body=true, binary_body_mode=true
