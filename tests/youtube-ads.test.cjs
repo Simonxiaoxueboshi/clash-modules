@@ -185,3 +185,108 @@ test('keeps ambiguous or invalid Onesie envelopes unchanged', () => {
   ];
   for (const input of invalid) assert.equal(runPlayerRequest(input, 'initplayback').body, undefined);
 });
+
+
+// --- The pre-roll configuration lives inside the authenticated Onesie envelope.
+const nodeCrypto = require('node:crypto');
+const zlib = require('node:zlib');
+const innerMeta = () => field(9, bytes('inner-metadata'));
+const innerPlain = body => Buffer.concat([field(3, body), innerMeta()]);
+function runOnesieRequest(body, { key, store } = {}) {
+  let output;
+  const utils = { gzip: value => zlib.gzipSync(Buffer.from(value)), ungzip: value => zlib.gunzipSync(Buffer.from(value)) };
+  vm.runInNewContext(requestScript, {
+    Uint8Array, ArrayBuffer, console: { log() {} }, $utils: utils,
+    $request: { url: 'https://rr1---sn-a5mlrnek.googlevideo.com/initplayback?source=youtube&c=IOS&oad=5500', body: new Uint8Array(body), headers: { 'User-Agent': 'com.google.ios.youtube/21.42.4' } },
+    $persistentStore: { read: () => store === undefined ? JSON.stringify({ youtube: { clientKey: key.toString('base64') } }) : store, write: () => true },
+    $done(result) { output = result; }
+  });
+  return output;
+}
+const seal = (inner, key, iv) => ({
+  cipher: nodeCrypto.createCipheriv('aes-128-ctr', key.subarray(0, 16), iv).update(inner),
+  mac: null
+});
+function sealMac(inner, key, iv) {
+  const cipher = nodeCrypto.createCipheriv('aes-128-ctr', key.subarray(0, 16), iv).update(inner);
+  return { cipher, mac: nodeCrypto.createHmac('sha256', key.subarray(16)).update(Buffer.concat([cipher, iv])).digest() };
+}
+const open = (cipher, key, iv) => nodeCrypto.createDecipheriv('aes-128-ctr', key.subarray(0, 16), iv).update(cipher);
+function parseFields(payload) {
+  const out = {};
+  for (let cursor = 0; cursor < payload.length;) {
+    let key = 0, scale = 1, byte;
+    do { byte = payload[cursor++]; key += (byte & 127) * scale; scale *= 128; } while (byte & 128);
+    const number = Math.floor(key / 8), wire = key % 8;
+    if (wire === 0) {
+      let value = 0; scale = 1;
+      do { byte = payload[cursor++]; value += (byte & 127) * scale; scale *= 128; } while (byte & 128);
+      (out[number] ||= []).push(value);
+    } else if (wire === 2) {
+      let size = 0; scale = 1;
+      do { byte = payload[cursor++]; size += (byte & 127) * scale; scale *= 128; } while (byte & 128);
+      (out[number] ||= []).push(payload.subarray(cursor, cursor + size)); cursor += size;
+    } else throw new Error('unsupported wire ' + wire);
+  }
+  return out;
+}
+const innerContext = () => Buffer.concat([field(9, bytes('ad-signals')), field(77, bytes('context-data'))]);
+const innerContent = () => Buffer.concat([field(12, bytes('vast')), field(25, bytes('forced-ad')), scalar(50, 0), scalar(51, 7)]);
+const innerBody = () => Buffer.concat([field(1, innerContext()), field(2, bytes('video-id')), field(4, Buffer.concat([field(1, innerContent()), field(8, bytes('playback-meta'))]))]);
+const cleanBody = () => Buffer.concat([field(1, field(77, bytes('context-data'))), field(2, bytes('video-id')), field(4, Buffer.concat([field(1, Buffer.concat([scalar(50, 1), scalar(51, 7)])), field(8, bytes('playback-meta'))]))]);
+function envelopeOf(key, iv, plain, sealed) {
+  sealed = sealed || sealMac(plain, key, iv);
+  return Buffer.concat([
+    field(1, Buffer.alloc(24, 0xa1)), field(2, sealed.cipher), field(5, key), field(6, iv), field(7, sealed.mac),
+    field(8, Buffer.alloc(1, 1)), scalar(13, 0), field(777, bytes('envelope-metadata'))
+  ]);
+}
+const rootOf = envelope => Buffer.concat([
+  field(2, Buffer.alloc(101, 0x5a)), field(3, envelope), field(4, Buffer.alloc(40, 0x5b)),
+  scalar(13, 1), field(14, Buffer.alloc(9, 0x5c)), field(900, bytes('root-metadata'))
+]);
+const fixedKey = Buffer.from(Array.from({ length: 32 }, (_, index) => index * 7 + 1));
+const fixedIv = Buffer.from(Array.from({ length: 16 }, (_, index) => 200 - index));
+
+test('rewrites the authenticated Onesie inner payload so the pre-roll ad parameters disappear', () => {
+  const input = rootOf(envelopeOf(fixedKey, fixedIv, innerPlain(innerBody())));
+  const output = Buffer.from(runOnesieRequest(input, { key: fixedKey }).body);
+  const root = parseFields(output), before = parseFields(input);
+  assert.deepEqual(root[2], before[2]);
+  assert.deepEqual(root[4], before[4]);
+  assert.deepEqual(root[14], before[14]);
+  assert.deepEqual(root[900], before[900]);
+  const envelope = parseFields(root[3][0]), old = parseFields(before[3][0]);
+  assert.equal(envelope[13][0], 0);
+  assert.deepEqual(envelope[1], old[1]);
+  assert.deepEqual(envelope[5], old[5]);
+  assert.deepEqual(envelope[6], old[6]);
+  assert.deepEqual(envelope[777], old[777]);
+  assert.equal(nodeCrypto.createHmac('sha256', fixedKey.subarray(16)).update(Buffer.concat([envelope[2][0], fixedIv])).digest('hex'), envelope[7][0].toString('hex'));
+  assert.deepEqual(Buffer.from(open(envelope[2][0], fixedKey, fixedIv)), innerPlain(cleanBody()));
+  assert.equal(runOnesieRequest(output, { key: fixedKey }).body, undefined);
+});
+
+test('rewrites a gzip-compressed Onesie inner payload and keeps it decryptable', () => {
+  const input = rootOf(envelopeOf(fixedKey, fixedIv, zlib.gzipSync(innerPlain(innerBody()))));
+  const output = Buffer.from(runOnesieRequest(input, { key: fixedKey }).body);
+  const envelope = parseFields(parseFields(output)[3][0]);
+  assert.equal(nodeCrypto.createHmac('sha256', fixedKey.subarray(16)).update(Buffer.concat([envelope[2][0], fixedIv])).digest('hex'), envelope[7][0].toString('hex'));
+  assert.deepEqual(zlib.gunzipSync(Buffer.from(open(envelope[2][0], fixedKey, fixedIv))), innerPlain(cleanBody()));
+});
+
+test('leaves the Onesie envelope untouched when authentication or the stored key fails', () => {
+  const input = rootOf(envelopeOf(fixedKey, fixedIv, innerPlain(innerBody())));
+  assert.equal(runOnesieRequest(input, { key: Buffer.alloc(32, 3) }).body, undefined);
+  const sealed = sealMac(innerPlain(innerBody()), fixedKey, fixedIv);
+  sealed.cipher[1] ^= 0xff;
+  assert.equal(runOnesieRequest(rootOf(envelopeOf(fixedKey, fixedIv, null, sealed)), { key: fixedKey }).body, undefined);
+  for (const store of [null, '{}', 'not-json', JSON.stringify({ youtube: { clientKey: 'AAAA' } })]) {
+    assert.equal(runOnesieRequest(input, { key: fixedKey, store }).body, undefined);
+  }
+});
+
+test('keeps a decrypted Onesie payload byte-identical when it carries no ad parameters', () => {
+  const input = rootOf(envelopeOf(fixedKey, fixedIv, innerPlain(cleanBody())));
+  assert.equal(runOnesieRequest(input, { key: fixedKey }).body, undefined);
+});
