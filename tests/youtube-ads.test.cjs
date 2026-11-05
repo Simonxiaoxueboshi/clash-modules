@@ -300,6 +300,8 @@ test('reports the Onesie outcome only when the debug argument is on', () => {
   const loud = runOnesieRequest(input, { key: fixedKey, argument: JSON.stringify({ debug: 'true' }) });
   assert.equal(loud.notes.length, 1);
   assert.match(loud.notes[0], /已改写加密信封/);
+  assert.match(loud.notes[0], /含广告参数/);
+  assert.match(loud.notes[0], new RegExp(input.length + "→" + loud.output.body.length + "B"));
   const noKey = runOnesieRequest(input, { key: fixedKey, store: '{}', argument: JSON.stringify({ debug: 'true' }) });
   assert.equal(noKey.notes.length, 1);
   assert.match(noKey.notes[0], /未取到密钥/);

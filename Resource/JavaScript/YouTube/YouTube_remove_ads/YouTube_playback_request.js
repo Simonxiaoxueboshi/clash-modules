@@ -240,9 +240,11 @@ function xtime(value){return ((value<<1)^((value&128)?27:0))&255;}addKey(0);for(
     "no-ad-params": "信封内无广告参数，原样放行",
     "no-envelope": "未找到加密信封，原样放行"
   };
-  function report() {
+  function report(before, after) {
     if (!verbose) return;
-    try { $notification.post("YouTube片头广告", "", OUTCOME[outcome] || ("原样放行：" + outcome)); } catch (error) {}
+    const ad = /\b(?:oad|oaad)=/i.test($request.url) ? "，含广告参数" : "";
+    const size = before ? "，" + before + (after && after !== before ? "→" + after : "") + "B" : "";
+    try { $notification.post("YouTube片头广告", "", (OUTCOME[outcome] || ("原样放行：" + outcome)) + size + ad); } catch (error) {}
   }
 
   try {
@@ -251,7 +253,7 @@ function xtime(value){return ((value<<1)^((value&128)?27:0))&255;}addKey(0);for(
     if (kind === "init") {
       const rewritten = rewriteOnesie(result.changed ? result.body : body);
       if (rewritten) result = { body: rewritten, changed: true };
-      report();
+      report(body.length, result.changed ? result.body.length : 0);
     }
     if (!result.changed) { $done({}); return; }
     const headers = { ...$request.headers };
