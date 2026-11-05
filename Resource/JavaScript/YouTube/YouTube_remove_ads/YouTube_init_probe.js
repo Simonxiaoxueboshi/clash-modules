@@ -19,8 +19,9 @@
     return null;
   }
   if (typeof $response !== "undefined") {
-    const body = bytes($response.body);
-    send({ stage: "init-resp", path: $request.url.split("?")[0], status: $response.status, length: body ? body.length : -1, body: body ? base64(body) : "" }, function () { $done({}); });
+    const body = bytes($response.body), path = $request.url.split("?")[0];
+    const stage = /\/initplayback$/.test(path) ? "init-resp" : "api-resp";
+    send({ stage: stage, path: path, status: $response.status, length: body ? body.length : -1, body: body ? base64(body) : "" }, function () { $done({}); });
     return;
   }
   const url = $request.url;
