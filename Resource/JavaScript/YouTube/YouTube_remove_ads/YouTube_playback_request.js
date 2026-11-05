@@ -190,37 +190,54 @@ function xtime(value){return ((value<<1)^((value&128)?27:0))&255;}addKey(0);for(
   // The pre-roll configuration travels inside the authenticated Onesie envelope, so the
   // plain request fields are not enough. Only rewrite when the stored key authenticates
   // the payload and the decrypted player body actually carried ad parameters.
+  let outcome = "unknown";
+  const miss = (code) => { outcome = code; return null; };
   function rewriteOnesie(bytes) {
+    outcome = "unknown";
     const root = records(bytes);
     const outer = single(root, 3);
-    if (!outer || outer.wire !== 2) return null;
+    if (!outer || outer.wire !== 2) return miss("no-envelope");
     const envelope = bytes.subarray(outer.dataStart, outer.dataEnd);
     const fields = records(envelope);
     const cipher = fieldBytes(envelope, fields, 2), iv = fieldBytes(envelope, fields, 6), mac = fieldBytes(envelope, fields, 7);
-    if (!cipher || !iv || !mac || !cipher.length || iv.length !== 16 || mac.length !== 32) return null;
-    if (!fieldBytes(envelope, fields, 5)) return null;
+    if (!cipher || !iv || !mac || !cipher.length || iv.length !== 16 || mac.length !== 32) return miss("bad-envelope");
+    if (!fieldBytes(envelope, fields, 5)) return miss("bad-envelope");
     const clientKey = storedClientKey();
-    if (!clientKey) return null;
-    if (!equal(hmac256(clientKey.subarray(16), join([cipher, iv])), mac)) return null;
+    if (!clientKey) return miss("no-key");
+    if (!equal(hmac256(clientKey.subarray(16), join([cipher, iv])), mac)) return miss("bad-mac");
     const plain = inflate(aesCtr(cipher, clientKey.subarray(0, 16), iv));
-    if (!plain) return null;
+    if (!plain) return miss("bad-plain");
     const inner = records(plain.bytes);
     const bodies = inner.filter((record) => record.field === 3 && record.wire === 2);
-    if (bodies.length !== 1) return null;
+    if (bodies.length !== 1) return miss("bad-inner");
     const cleaned = clean(plain.bytes.subarray(bodies[0].dataStart, bodies[0].dataEnd), "player");
-    if (!cleaned.changed) return null;
+    if (!cleaned.changed) return miss("no-ad-params");
     const rebuilt = join(inner.map((record) => record === bodies[0] ? frame(3, cleaned.body) : plain.bytes.subarray(record.start, record.dataEnd)));
     const compressed = plain.gzip ? deflate(rebuilt) : rebuilt;
-    if (!compressed) return null;
+    if (!compressed) return miss("bad-plain");
     const newCipher = aesCtr(compressed, clientKey.subarray(0, 16), iv);
-    if (newCipher.length !== compressed.length) return null;
+    if (newCipher.length !== compressed.length) return miss("bad-plain");
     const newMac = hmac256(clientKey.subarray(16), join([newCipher, iv]));
     const newEnvelope = join(fields.map((record) => {
       if (record.field === 2 && record.wire === 2) return frame(2, newCipher);
       if (record.field === 7 && record.wire === 2) return frame(7, newMac);
       return envelope.subarray(record.start, record.dataEnd);
     }));
+    outcome = "rewritten";
     return join(root.map((record) => record === outer ? frame(3, newEnvelope) : bytes.subarray(record.start, record.dataEnd)));
+  }
+  const settings = (() => { try { return JSON.parse(typeof $argument === "string" ? $argument : "{}") || {}; } catch (error) { return {}; } })();
+  const verbose = settings.debug === true || String(settings.debug).toLowerCase() === "true";
+  const OUTCOME = {
+    rewritten: "已改写加密信封",
+    "no-key": "未取到密钥（YouTubeConfig 无 clientKey），仅置标志",
+    "bad-mac": "密钥校验失败，原样放行",
+    "no-ad-params": "信封内无广告参数，原样放行",
+    "no-envelope": "未找到加密信封，原样放行"
+  };
+  function report() {
+    if (!verbose) return;
+    try { $notification.post("YouTube片头广告", "", OUTCOME[outcome] || ("原样放行：" + outcome)); } catch (error) {}
   }
 
   try {
@@ -229,6 +246,7 @@ function xtime(value){return ((value<<1)^((value&128)?27:0))&255;}addKey(0);for(
     if (kind === "init") {
       const rewritten = rewriteOnesie(result.changed ? result.body : body);
       if (rewritten) result = { body: rewritten, changed: true };
+      report();
     }
     if (!result.changed) { $done({}); return; }
     const headers = { ...$request.headers };
