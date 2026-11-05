@@ -26,7 +26,7 @@ AND,((PROTOCOL,UDP),(DEST-PORT,443),(DOMAIN-SUFFIX,youtu.be)),REJECT
 
 [Script]
 # 只关闭 Onesie 信封外层的片头广告标志，原始与修改后请求仅发送到本地诊断接收器。
-request if ${url} ~= /^https:\/\/[a-z0-9-]+\.googlevideo\.com\/initplayback(?:\?[^#]*)?$/i && ${request.method} == "POST" && ${request.headers.User-Agent} ~= /(?:^|\s)com\.google\.ios\.youtube\//i then script("https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/43d5874/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_init_capture.js") with tag="YouTube片头广告标志", requires_body=true, binary_body_mode=true
+request if ${url} ~= /^https:\/\/[a-z0-9-]+\.googlevideo\.com\/initplayback(?:\?[^#]*)?$/i then script("https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/43d5874/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_init_capture.js") with tag="YouTube片头广告标志", requires_body=true, binary_body_mode=true
 
 # 在 player/get_watch 请求中去除广告参数，并请求内联无广告播放。
 request if ${url} ~= /^https:\/\/youtubei(?:-att)?\.googleapis\.com\/youtubei\/v1\/(?:player|get_watch)(?:\?[^#]*)?$/i then script("https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/43d5874/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_playback_request.js") with tag="YouTube播放请求", requires_body=true, binary_body_mode=true
