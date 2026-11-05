@@ -52,3 +52,30 @@ test('removes the ad while preserving neighboring ordinary feed entries', () => 
   assert.equal(Ir(response), true);
   assert.deepEqual(response.richItemContents, [first, third]);
 });
+
+test('filters the observed deferred-update path and preserves unrelated protobuf fields', () => {
+  function varint(value) {
+    const out = [];
+    while (value > 127) { out.push((value % 128) | 128); value = Math.floor(value / 128); }
+    out.push(value);
+    return Buffer.from(out);
+  }
+  const field = (number, payload) => Buffer.concat([varint(number * 8 + 2), varint(payload.length), payload]);
+  const normalCard = field(777, Buffer.from(ordinary));
+  const adCard = field(777, Buffer.from(advertisement));
+  const items = Buffer.concat([field(1, normalCard), field(1, adCard)]);
+  const section = field(1, field(50195462, items));
+  const rootUnknown = field(777, Buffer.from('retain-this-unmodeled-field'));
+  const wrap = sectionList => Buffer.concat([field(10, field(49399797, field(32, field(1, field(6, sectionList))))), rootUnknown]);
+  const input = wrap(section);
+  const expected = wrap(field(1, field(50195462, field(1, normalCard))));
+  let output;
+  const runtime = {
+    ...sandbox,
+    $response: { status: 200, headers: {}, body: new Uint8Array(input) },
+    $done(result) { output = result; }
+  };
+  vm.runInNewContext(script, runtime);
+  assert.ok(output.body instanceof Uint8Array);
+  assert.deepEqual(Buffer.from(output.body), expected);
+});
