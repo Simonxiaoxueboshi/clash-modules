@@ -99,3 +99,51 @@ test('filters next side-panel ads while preserving normal cards and panel metada
   const type = sandbox.predicates.Mi.find(api => 'https://youtubei.googleapis.com/youtubei/v1/next'.includes(api.path)).msgType;
   assert.deepEqual(type.fromBinary(Buffer.from(output.body)), type.fromBinary(wrap([normalCard])));
 });
+
+const requestScript = fs.readFileSync(path.join(__dirname, '../Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_playback_request.js'), 'utf8');
+const scalar = (number, value) => Buffer.concat([varint(number * 8), varint(value)]);
+function runPlayerRequest(body, endpoint = 'player') {
+  let output;
+  vm.runInNewContext(requestScript, {
+    Uint8Array, console: { log() {} },
+    $request: { url: `https://youtubei.googleapis.com/youtubei/v1/${endpoint}`, body: new Uint8Array(body), headers: { 'Content-Type': 'application/x-protobuf', 'Content-Length': String(body.length), 'Content-Encoding': 'br', 'X-Preserve': 'yes' } },
+    $done(result) { output = result; }
+  });
+  return output;
+}
+
+test('removes player ad parameters and preserves video identity and unrelated wire fields', () => {
+  const video = field(2, bytes('video-id'));
+  const context = field(1, Buffer.concat([field(9, bytes('ad-signals')), field(77, bytes('context-data'))]));
+  const content = Buffer.concat([field(12, bytes('vast')), field(25, bytes('forced-ad')), scalar(50, 0), scalar(51, 7)]);
+  const unknown = field(777, bytes('retain-this'));
+  const input = Buffer.concat([context, video, field(4, field(1, content)), unknown]);
+  const expected = Buffer.concat([field(1, field(77, bytes('context-data'))), video, field(4, field(1, Buffer.concat([scalar(50, 1), scalar(51, 7)]))), unknown]);
+  const result = runPlayerRequest(input);
+  assert.deepEqual(Buffer.from(result.body), expected);
+  assert.equal(result.headers['Content-Length'], undefined);
+  assert.equal(result.headers['Content-Encoding'], undefined);
+  assert.equal(result.headers['X-Preserve'], 'yes');
+  assert.equal(result.headers['Content-Type'], 'application/x-protobuf');
+  assert.equal(runPlayerRequest(expected).body, undefined);
+});
+
+test('cleans get-watch outer context and nested player without removing neighboring fields', () => {
+  const context = Buffer.concat([field(9, bytes('ad-signals')), scalar(17, 4)]);
+  const player = Buffer.concat([field(1, context), field(2, bytes('video-id')), field(4, field(1, scalar(50, 0)))]);
+  const outer = scalar(700, 9);
+  const input = Buffer.concat([field(1, context), field(2, player), outer]);
+  const expectedPlayer = Buffer.concat([field(1, scalar(17, 4)), field(2, bytes('video-id')), field(4, field(1, scalar(50, 1)))]);
+  const expected = Buffer.concat([field(1, scalar(17, 4)), field(2, expectedPlayer), outer]);
+  assert.deepEqual(Buffer.from(runPlayerRequest(input, 'get_watch').body), expected);
+});
+
+test('normalizes duplicate no-ad flags and leaves malformed requests untouched', () => {
+  const wrap = content => field(4, field(1, content));
+  assert.deepEqual(Buffer.from(runPlayerRequest(wrap(Buffer.concat([scalar(50, 1), scalar(50, 0)]))).body), wrap(scalar(50, 1)));
+  for (const input of [Buffer.from([10, 3, 1]), Buffer.from([0]), Buffer.from([8, 128]), field(4, Buffer.from([10, 3, 1]))]) {
+    const result = runPlayerRequest(input);
+    assert.equal(result.body, undefined);
+    assert.equal(result.headers, undefined);
+  }
+});
