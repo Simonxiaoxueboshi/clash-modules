@@ -38,9 +38,9 @@
   // responses omit it, so dropping it mirrors the server. In browse the same URL
   // is a leaf field per video, so only that field is removed.
   if (!(l instanceof Uint8Array)) return null;
-  const mk = s => Uint8Array.from(s, c => c.charCodeAt(0));
-  const INIT = mk("initplayback"), OAD = mk("&oad="), ENG = mk("engagement_header.eml"), PREFIX = mk("https://");
-  const at = (b, p, from) => {
+  const $mk = s => Uint8Array.from(s, c => c.charCodeAt(0));
+  const INIT = $mk("initplayback"), OAD = $mk("&oad="), ENG = $mk("engagement_header.eml"), PREFIX = $mk("https://");
+  const $at = (b, p, from) => {
     outer: for (let i = from; i <= b.length - p.length; i++) {
       if (b[i] !== p[0]) continue;
       for (let j = 1; j < p.length; j++) if (b[i + j] !== p[j]) continue outer;
@@ -48,35 +48,35 @@
     }
     return -1;
   };
-  const has = (b, p) => at(b, p, 0) >= 0;
-  const vi = (b, i) => { let r = 0, s = 0; for (;;) { if (i >= b.length) return null; const c = b[i++]; r += (c & 127) * Math.pow(2, s); if (!(c & 128)) return { v: r, i }; s += 7; if (s > 49) return null; } };
-  const join = parts => { let n = 0; for (const p of parts) n += p.length; const out = new Uint8Array(n); let o = 0; for (const p of parts) { out.set(p, o); o += p.length; } return out; };
-  const frame = (field, payload) => {
+  const $has = (b, p) => $at(b, p, 0) >= 0;
+  const $vi = (b, i) => { let r = 0, s = 0; for (;;) { if (i >= b.length) return null; const c = b[i++]; r += (c & 127) * Math.pow(2, s); if (!(c & 128)) return { v: r, i }; s += 7; if (s > 49) return null; } };
+  const $join = parts => { let n = 0; for (const p of parts) n += p.length; const out = new Uint8Array(n); let o = 0; for (const p of parts) { out.set(p, o); o += p.length; } return out; };
+  const $frame = (field, payload) => {
     const head = []; let v = field * 8 + 2;
     while (v > 127) { head.push((v & 127) | 128); v = Math.floor(v / 128); }
     head.push(v); v = payload.length;
     while (v > 127) { head.push((v & 127) | 128); v = Math.floor(v / 128); }
     head.push(v);
-    return join([new Uint8Array(head), payload]);
+    return $join([new Uint8Array(head), payload]);
   };
-  const sweep = (b, depth) => {
+  const $sweep = (b, depth) => {
     const keep = []; let i = 0, dropped = false;
     while (i < b.length) {
-      const start = i, key = vi(b, i);
+      const start = i, key = $vi(b, i);
       if (!key) return null;
       i = key.i;
       const field = Math.floor(key.v / 8), w = key.v & 7; let end;
-      if (w === 0) { const x = vi(b, i); if (!x) return null; end = x.i; }
+      if (w === 0) { const x = $vi(b, i); if (!x) return null; end = x.i; }
       else if (w === 2) {
-        const x = vi(b, i);
+        const x = $vi(b, i);
         if (!x || x.i + x.v > b.length) return null;
         end = x.i + x.v;
         const sub = b.subarray(x.i, end);
-        if (has(sub, INIT)) {
-          if (sub.length > 32 && at(sub, PREFIX, 0) === 0 && has(sub, OAD)) { dropped = true; i = end; continue; }
-          if (depth === 0 && has(sub, ENG)) { dropped = true; i = end; continue; }
-          const inner = sweep(sub, depth + 1);
-          if (inner) { keep.push(frame(field, inner)); dropped = true; i = end; continue; }
+        if ($has(sub, INIT)) {
+          if (sub.length > 32 && $at(sub, PREFIX, 0) === 0 && $has(sub, OAD)) { dropped = true; i = end; continue; }
+          if (depth === 0 && $has(sub, ENG)) { dropped = true; i = end; continue; }
+          const inner = $sweep(sub, depth + 1);
+          if (inner) { keep.push($frame(field, inner)); dropped = true; i = end; continue; }
         }
       }
       else if (w === 5) { if (i + 4 > b.length) return null; end = i + 4; }
@@ -84,7 +84,7 @@
       else return null;
       keep.push(b.subarray(start, end)); i = end;
     }
-    return dropped ? join(keep) : null;
+    return dropped ? $join(keep) : null;
   };
-  return sweep(l, 0);
+  return $sweep(l, 0);
 }try{Ki()}catch(l){console.log(String(l)),F.exit()}})();
