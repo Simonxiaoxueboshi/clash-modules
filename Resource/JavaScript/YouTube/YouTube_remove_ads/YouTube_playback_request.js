@@ -1,8 +1,11 @@
 // Player request field mapping: teaoea/shell plugins/YouTube/src/YouTubePlayback.js.
 // Preserve all unrelated protobuf fields and their original wire bytes.
 (() => {
-  const body = $request.body;
-  if (!(body instanceof Uint8Array)) { $done({}); return; }
+  const rawBody = $request.body;
+  const body = rawBody instanceof Uint8Array ? rawBody
+    : rawBody instanceof ArrayBuffer ? new Uint8Array(rawBody)
+    : ArrayBuffer.isView(rawBody) ? new Uint8Array(rawBody.buffer, rawBody.byteOffset, rawBody.byteLength) : null;
+  if (!body) { $done({}); return; }
 
   function uint(bytes, cursor) {
     let value = 0, scale = 1;

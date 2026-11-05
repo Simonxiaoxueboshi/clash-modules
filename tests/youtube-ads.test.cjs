@@ -102,11 +102,11 @@ test('filters next side-panel ads while preserving normal cards and panel metada
 
 const requestScript = fs.readFileSync(path.join(__dirname, '../Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_playback_request.js'), 'utf8');
 const scalar = (number, value) => Buffer.concat([varint(number * 8), varint(value)]);
-function runPlayerRequest(body, endpoint = 'player') {
+function runPlayerRequest(body, endpoint = 'player', bodyValue = new Uint8Array(body)) {
   let output;
   vm.runInNewContext(requestScript, {
-    Uint8Array, console: { log() {} },
-    $request: { url: `https://youtubei.googleapis.com/youtubei/v1/${endpoint}`, body: new Uint8Array(body), headers: { 'Content-Type': 'application/x-protobuf', 'Content-Length': String(body.length), 'Content-Encoding': 'br', 'X-Preserve': 'yes' } },
+    Uint8Array, ArrayBuffer, console: { log() {} },
+    $request: { url: `https://youtubei.googleapis.com/youtubei/v1/${endpoint}`, body: bodyValue, headers: { 'Content-Type': 'application/x-protobuf', 'Content-Length': String(body.length), 'Content-Encoding': 'br', 'X-Preserve': 'yes' } },
     $done(result) { output = result; }
   });
   return output;
@@ -146,4 +146,13 @@ test('normalizes duplicate no-ad flags and leaves malformed requests untouched',
     assert.equal(result.body, undefined);
     assert.equal(result.headers, undefined);
   }
+});
+
+test('reads ArrayBuffer bodies and respects the bounds of offset binary views', () => {
+  const input = field(4, field(1, scalar(50, 0)));
+  const expected = field(4, field(1, scalar(50, 1)));
+  const backing = new Uint8Array(input.length + 8).fill(255);
+  backing.set(input, 4);
+  const inputs = [new Uint8Array(input).buffer, new DataView(backing.buffer, 4, input.length)];
+  for (const body of inputs) assert.deepEqual(Buffer.from(runPlayerRequest(input, 'player', body).body), expected);
 });
