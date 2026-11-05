@@ -1,4 +1,4 @@
-// Player request field mapping: teaoea/shell plugins/YouTube/src/YouTubePlayback.js.
+// Protocol fields: teaoea/shell plugins/YouTube/src/{YouTubePlayback,YouTubeConfig}.js.
 // Preserve all unrelated protobuf fields and their original wire bytes.
 (() => {
   const rawBody = $request.body;
@@ -31,6 +31,8 @@
   function clean(bytes, kind) {
     const cursor = { pos: 0 }, parts = [];
     let changed = false, inlineWritten = false;
+    let envelopeSeen = false, prerollSeen = false;
+    const cryptoLengths = kind === "onesie" ? { 2: -1, 5: -1, 6: -1, 7: -1 } : null;
     while (cursor.pos < bytes.length) {
       const start = cursor.pos, key = uint(bytes, cursor), field = Math.floor(key / 8), wire = key % 8;
       if (!field) throw new Error("Invalid protobuf field zero");
@@ -52,6 +54,18 @@
       dataEnd = cursor.pos;
       if (dataEnd > bytes.length) throw new Error("Truncated protobuf field");
 
+      if (cryptoLengths && Object.prototype.hasOwnProperty.call(cryptoLengths, field)) {
+        if (wire !== 2 || cryptoLengths[field] !== -1) throw new Error("Invalid or duplicate Onesie crypto field");
+        cryptoLengths[field] = dataEnd - dataStart;
+      }
+      if (kind === "onesie" && field === 13) {
+        if (prerollSeen || wire !== 0 || dataEnd - dataStart !== 1 || bytes[dataStart] > 1) throw new Error("Invalid or duplicate Onesie preroll flag");
+        prerollSeen = true;
+        if (bytes[dataStart] === 0) parts.push(bytes.subarray(start, dataEnd));
+        else { parts.push(encode(104), Uint8Array.of(0)); changed = true; }
+        continue;
+      }
+
       if (kind === "context" && field === 9 && wire === 2 ||
           kind === "content" && (field === 12 || field === 25) && wire === 2) {
         changed = true;
@@ -67,7 +81,11 @@
         continue;
       }
       let childKind;
-      if (wire === 2) {
+      if (kind === "init" && field === 3) {
+        if (wire !== 2 || envelopeSeen) throw new Error("Invalid or duplicate Onesie envelope");
+        envelopeSeen = true;
+        childKind = "onesie";
+      } else if (wire === 2) {
         if (kind === "watch") childKind = field === 1 ? "context" : field === 2 ? "player" : undefined;
         else if (kind === "player") childKind = field === 1 ? "context" : field === 4 ? "playback" : undefined;
         else if (kind === "playback" && field === 1) childKind = "content";
@@ -78,6 +96,10 @@
         changed = true;
       } else parts.push(bytes.subarray(start, dataEnd));
     }
+    if (cryptoLengths) {
+      if (cryptoLengths[2] <= 0 || cryptoLengths[5] <= 0 || cryptoLengths[6] !== 16 || cryptoLengths[7] !== 32) return { body: bytes, changed: false };
+      if (!prerollSeen) { parts.push(encode(104), Uint8Array.of(0)); changed = true; }
+    }
     if (kind === "content" && !inlineWritten) {
       parts.push(encode(400), Uint8Array.of(1));
       changed = true;
@@ -86,14 +108,14 @@
   }
 
   try {
-    const kind = /\/get_watch(?:\?|$)/.test($request.url) ? "watch" : "player";
+    const kind = /\/initplayback(?:\?|$)/.test($request.url) ? "init" : /\/get_watch(?:\?|$)/.test($request.url) ? "watch" : "player";
     const result = clean(body, kind);
     if (!result.changed) { $done({}); return; }
     const headers = { ...$request.headers };
     for (const key of Object.keys(headers)) if (/^content-(?:length|encoding)$/i.test(key)) delete headers[key];
     $done({ body: result.body, headers });
   } catch (error) {
-    console.log("YouTube player request unchanged: " + error.message);
+    console.log("YouTube playback request unchanged: " + error.message);
     $done({});
   }
 })();

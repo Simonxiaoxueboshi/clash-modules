@@ -156,3 +156,32 @@ test('reads ArrayBuffer bodies and respects the bounds of offset binary views', 
   const inputs = [new Uint8Array(input).buffer, new DataView(backing.buffer, 4, input.length)];
   for (const body of inputs) assert.deepEqual(Buffer.from(runPlayerRequest(input, 'player', body).body), expected);
 });
+
+const onesieCrypto = Buffer.concat([field(2, Buffer.alloc(24, 0xa1)), field(5, Buffer.alloc(32, 0xb2)), field(6, Buffer.alloc(16, 0xc3)), field(7, Buffer.alloc(32, 0xd4))]);
+test('disables an existing Onesie preroll flag without changing any encrypted or unrelated bytes', () => {
+  const unknown = field(777, bytes('preserve-envelope-metadata'));
+  const wrap = flag => Buffer.concat([scalar(8, 3), field(3, Buffer.concat([onesieCrypto, flag, unknown])), field(900, bytes('root-metadata'))]);
+  const input = wrap(scalar(13, 1));
+  const output = Buffer.from(runPlayerRequest(input, 'initplayback').body);
+  assert.deepEqual(output, wrap(scalar(13, 0)));
+  assert.equal(output.filter((value, index) => value !== input[index]).length, 1);
+  assert.equal(runPlayerRequest(output, 'initplayback').body, undefined);
+});
+
+test('adds an explicit disabled preroll flag only to a complete Onesie envelope', () => {
+  const input = field(3, onesieCrypto);
+  assert.deepEqual(Buffer.from(runPlayerRequest(input, 'initplayback').body), field(3, Buffer.concat([onesieCrypto, scalar(13, 0)])));
+  assert.equal(runPlayerRequest(field(3, field(2, bytes('incomplete'))), 'initplayback').body, undefined);
+  assert.equal(runPlayerRequest(Buffer.alloc(0), 'initplayback').body, undefined);
+});
+
+test('keeps ambiguous or invalid Onesie envelopes unchanged', () => {
+  const invalid = [
+    field(3, Buffer.concat([onesieCrypto, scalar(13, 2)])),
+    field(3, Buffer.concat([onesieCrypto, scalar(13, 1), scalar(13, 0)])),
+    field(3, Buffer.concat([onesieCrypto, field(6, Buffer.alloc(16))])),
+    Buffer.concat([field(3, onesieCrypto), field(3, onesieCrypto)]),
+    field(3, Buffer.concat([field(2, bytes('cipher')), field(5, bytes('key')), field(6, Buffer.alloc(15)), field(7, Buffer.alloc(32)), scalar(13, 1)]))
+  ];
+  for (const input of invalid) assert.equal(runPlayerRequest(input, 'initplayback').body, undefined);
+});
