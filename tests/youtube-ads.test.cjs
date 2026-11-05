@@ -308,3 +308,64 @@ test('reports the Onesie outcome only when the debug argument is on', () => {
   const noAd = runOnesieRequest(rootOf(envelopeOf(fixedKey, fixedIv, innerPlain(cleanBody()))), { key: fixedKey, argument: JSON.stringify({ debug: 'true' }) });
   assert.match(noAd.notes[0], /信封内无广告参数/);
 });
+
+// The pre-roll overlay is a top-level next field whose payload carries the ad
+// init URL; ad-free responses omit it, so the filter drops it byte-for-byte.
+const nextType = sandbox.predicates.Mi.find(api => 'https://youtubei.googleapis.com/youtubei/v1/next'.includes(api.path)).msgType;
+const adInitUrl = bytes('https://rr4---sn-a5meknzk.googlevideo.com/initplayback?source=youtube&oeis=1&c=IOS&oad=5500&ovd=5500&oaad=11000');
+const overlay = Buffer.concat([
+  field(357104971, Buffer.concat([
+    field(1, Buffer.from('TzRtSL0Fg4jqc4NJ')),
+    field(2, field(361256913, field(1, field(138681066, Buffer.concat([
+      field(2, Buffer.from('engagement_header.eml|8f')),
+      field(3, Buffer.from(adInitUrl)),
+      field(10, Buffer.from('engagement_footer.eml|7b'))
+    ])))))
+  ]))
+]);
+function runAt(url, body) {
+  let output;
+  vm.runInNewContext(script, {
+    ...sandbox,
+    $request: { ...sandbox.$request, url },
+    $response: { status: 200, headers: {}, body: new Uint8Array(body) },
+    $done(result) { output = result; }
+  });
+  return output;
+}
+
+function runNext(body) {
+  return runAt('https://youtubei.googleapis.com/youtubei/v1/next', body);
+}
+
+test('drops the top-level next field that carries the pre-roll ad init url', () => {
+  const content = field(1, Buffer.from('next-contents'));
+  const tail = field(777, Buffer.from('next-unmodeled-field'));
+  const output = runNext(Buffer.concat([content, field(42, overlay), tail]));
+  assert.ok(output.body instanceof Uint8Array);
+  assert.equal(Buffer.from(output.body).includes('initplayback'), false);
+  assert.deepEqual(nextType.fromBinary(Buffer.from(output.body)), nextType.fromBinary(Buffer.concat([content, tail])));
+});
+
+test('keeps a top-level next field that mentions initplayback without ad parameters', () => {
+  const body = Buffer.concat([field(1, Buffer.from('next-contents')), field(42, Buffer.from('https://rr1---sn-x.googlevideo.com/initplayback?source=youtube&itag=0'))]);
+  assert.equal(runNext(body).body, undefined);
+});
+
+test('leaves a next response without an overlay untouched and survives a malformed body', () => {
+  assert.equal(runNext(Buffer.concat([field(1, Buffer.from('next-contents'))])).body, undefined);
+  assert.equal(runNext(Buffer.from([0xff, 0xff, 0xff])).body, undefined);
+});
+
+test('strips a per-video ad url leaf from the browse feed without dropping the feed', () => {
+  const plain = field(1, Buffer.from('plain-video-renderer'));
+  const ad = Buffer.concat([field(1, Buffer.from('ad-bearing-video-renderer')), field(2, adInitUrl), field(3, Buffer.from('card-meta'))]);
+  const body = Buffer.concat([field(9, Buffer.concat([field(1, plain), field(1, ad)])), field(777, Buffer.from('feed-unmodeled-field'))]);
+  const output = runAt('https://youtubei.googleapis.com/youtubei/v1/browse?prettyPrint=false', body);
+  assert.ok(output.body instanceof Uint8Array);
+  const filtered = Buffer.from(output.body);
+  assert.equal(filtered.includes(adInitUrl), false);
+  assert.equal(filtered.includes('plain-video-renderer'), true);
+  assert.equal(filtered.includes('ad-bearing-video-renderer'), true);
+  assert.equal(filtered.includes('card-meta'), true);
+});
