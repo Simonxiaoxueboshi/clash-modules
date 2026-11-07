@@ -8,7 +8,7 @@
 #!loon_version=3.5.1(998)
 #!homepage=https://github.com/Simonxiaoxueboshi/clash-modules
 #!icon=https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/main/Icon/App_icon/120px/YouTube.png
-#!date=2026-11-06
+#!date=2026-11-07
 
 [Argument]
 blockUpload=switch, false, true, tag=隐藏上传按钮, desc=用于隐藏YouTube底栏的上传按钮
@@ -18,7 +18,7 @@ captionLang=select, "zh-Hans", "zh-Hant", "ja", "ko", "en", "off", tag=字幕翻
 debug=switch, false, true, tag=启用调试模式, desc=此插件的调试模式
 
 [Script]
-response if ${url} ~= /^https:\/\/youtubei\.googleapis\.com\/(youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch|log_event|config))(\?(.*))?$/i then script("https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/d5da6f3/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_response.js", {${blockUpload}, ${blockShorts}, ${blockImmersive}, ${captionLang}, ${debug}}) with tag="YouTube去广告", requires_body=true, binary_body_mode=true
+response if ${url} ~= /^https:\/\/youtubei\.googleapis\.com\/(youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch|log_event|config))(\?(.*))?$/i then script("https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/13a18bc/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_response.js", {${blockUpload}, ${blockShorts}, ${blockImmersive}, ${captionLang}, ${debug}}) with tag="YouTube去广告", requires_body=true, binary_body_mode=true
 
 request if ${url} ~= /^https?:\/\/[\w-]+\.googlevideo\.com\/initplayback.+&ack.*/i then script("https://raw.githubusercontent.com/Simonxiaoxueboshi/clash-modules/d5da6f3/Resource/JavaScript/YouTube/YouTube_remove_ads/YouTube_remove_ads_request.js", {${captionLang}}) with tag="请求初始化", requires_body=true, binary_body_mode=true
 
