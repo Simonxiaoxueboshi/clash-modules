@@ -81,3 +81,12 @@ raw.githubusercontent.com 有约 5 分钟缓存，推送后稍等再在 Clash �
 - 回归：`node --test tests/youtube-ads.test.cjs`，22 项全部通过。
 - 手机实测（2026-11-06，本版 febaf74 + 模块 5240cc7，冷启动首播）：片头仍是「第 1 則贊助商廣告（共 2 則）」「第 2 則贊助商廣告」，播放页仍出现赞助卡片。即**响应侧改写在这台手机上未生效**，离线验证通过不等于手机端生效；响应脚本是否真正被执行尚未证实（此前手机上的抓包来自诊断探针，不是生产规则）。
 
+### 2026-11-07：字幕空列表导致播放器响应改写中断
+
+- 实际插件来源为 `https://hub.kelee.one`，目录中的 YouTube 链接为 `https://kelee.one/Tool/Loon/Lpx/YouTube_remove_ads.lpx`。其脚本默认开启简体中文字幕翻译。
+- 直接运行可莉当前响应脚本复现：空 `captionTracks` 导致 `Cannot read properties of undefined (reading 'baseUrl')`；没有 `playabilityStatus` 的播放器导致 `Cannot set properties of undefined (setting 'pictureInPictureRender')`。异常会使整个响应放行，丢失本次去广告及后台播放改写。
+- 修复：仅对非空字幕列表创建翻译轨道；没有播放状态的部分播放器跳过画中画/后台能力改写，继续处理广告和同批其他播放器，不凭空创建可播放状态。本仓库原有广告过滤修复保留。
+- 完整 `player` / `get_watch` 响应重放：原版均异常退出；修复版均输出响应、清空广告字段并开启后台播放标志。回归另验证批量播放器中缺失状态的条目不影响后续条目，以及未知字段保留。
+- Loon 使用 `Tool/Loon/YouTube_remove_ads.lpx`；与可莉原版二选一，避免首个匹配脚本抢占。启用脚本、HTTPS 解密、证书信任、MitM over HTTP/2 和 QUIC 回退保护；Loon 最低版本沿用上游 `3.5.1(998)`。更新插件后刷新脚本资源，彻底退出并重新打开 YouTube。
+- 验证限制：USB 已识别配对 iPhone，但本次工具无法控制手机镜像，未读取手机实际脚本日志，未验证首播广告、锁屏续播或自动切换下一首。上述两类异常是否为该手机故障原因仍需实机确认；不宣称所有广告已消失。
+

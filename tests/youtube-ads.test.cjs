@@ -369,3 +369,41 @@ test('strips a per-video ad url leaf from the browse feed without dropping the f
   assert.equal(filtered.includes('ad-bearing-video-renderer'), true);
   assert.equal(filtered.includes('card-meta'), true);
 });
+
+function runPlayback(api, body) {
+  let output;
+  vm.runInNewContext(script, {
+    ...sandbox,
+    $argument: { captionLang: 'zh-Hans' },
+    $request: { ...sandbox.$request, url: `https://youtubei.googleapis.com/youtubei/v1/${api}` },
+    $response: { status: 200, headers: {}, body: new Uint8Array(body) },
+    $done(result) { output = result; }
+  });
+  assert.ok(output.body instanceof Uint8Array, 'playback modifications must reach Loon');
+  return sandbox.predicates.Mi.find(entry => entry.path === api).msgType.fromBinary(output.body);
+}
+
+test('empty caption tracks do not discard ad removal or background playback', () => {
+  const body = Buffer.concat([
+    field(2, Buffer.alloc(0)),
+    field(7, Buffer.alloc(0)),
+    field(10, field(51621377, Buffer.alloc(0))),
+    field(777, Buffer.from('video-metadata'))
+  ]);
+  const result = runPlayback('player', body);
+  assert.equal(result.adPlacements.length, 0);
+  assert.equal(result.playabilityStatus.backgroundPlayerRender.backgroundAbility.active, true);
+  assert.equal(result.playabilityStatus.pictureInPictureRender.pictureInPictureAbility.active, true);
+  assert.equal(result.captions.playerCaptionsTrackListRenderer.captionTracks.length, 0);
+  assert.deepEqual(Buffer.from(d.list(result).find(entry => entry.no === 777).data), Buffer.concat([varint(14), Buffer.from('video-metadata')]));
+});
+
+test('a partial player does not abort later players in a get_watch batch', () => {
+  const partial = Buffer.concat([field(7, Buffer.alloc(0)), field(777, Buffer.from('partial-player'))]);
+  const playable = Buffer.concat([field(2, Buffer.alloc(0)), field(7, Buffer.alloc(0))]);
+  const result = runPlayback('get_watch', Buffer.concat([field(1, field(2, partial)), field(1, field(2, playable))]));
+  assert.equal(result.contents[0].player.playabilityStatus, undefined);
+  assert.equal(result.contents[0].player.adPlacements.length, 0);
+  assert.equal(result.contents[1].player.adPlacements.length, 0);
+  assert.equal(result.contents[1].player.playabilityStatus.backgroundPlayerRender.backgroundAbility.active, true);
+});
