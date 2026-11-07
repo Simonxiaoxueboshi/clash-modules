@@ -17,6 +17,10 @@ blockImmersive=switch, false, true, tag=隐藏选段按钮, desc=用于隐藏You
 captionLang=select, "zh-Hans", "zh-Hant", "ja", "ko", "en", "off", tag=字幕翻译语言, desc=需要把YouTube字幕翻译翻译为何种语言
 debug=switch, false, true, tag=启用调试模式, desc=此插件的调试模式
 
+[Rule]
+AND,((DOMAIN-SUFFIX,googlevideo.com),(PROTOCOL,UDP)),REJECT
+AND,((DOMAIN,youtubei.googleapis.com),(PROTOCOL,UDP)),REJECT
+
 [Rewrite]
 ^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/player\/ad_break reject-200
 
